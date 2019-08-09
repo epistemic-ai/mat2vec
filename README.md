@@ -1,7 +1,11 @@
-This document describes how to train a word2vec model on PubMed abstracts.
+### Supplementary Materials for "Unsupervised word embeddings capture latent knowledge from materials science literature", *Nature*  571, 95–98 (2019).
+#### Tshitoyan, V., Dagdelen, J., Weston, L., Dunn, A., Rong, Z., Kononova, O., Persson, K. A., Ceder, G. and Jain, A. 
+doi: [10.1038/s41586-019-1335-8](https://www.nature.com/articles/s41586-019-1335-8)
 
 ***Most of this code was copied from
 [mat2vec repository](https://github.com/materialsintelligence/mat2vec)***
+
+This document describes how to train a word2vec model on PubMed abstracts.
 
 ## Installation
 
