@@ -20,11 +20,11 @@ logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s",
                     level=logging.INFO)
 
 
-def find_entity(entities: str, vocab: Set[str]) -> str:
+def find_entity(entities:str, vocab: Set[str]) -> str:
     """Returns the first match of a list of entities in a vocabulary.
 
     Args:
-        entities: A list of entities.
+        entities: A string of entities separated by pipe "|".
         vocab: A set of ngrams.
 
     Returns:
@@ -46,18 +46,19 @@ def load_entities_fn(file_name: str, types: List[str]) -> Dict[str, Set[str]]:
         types: List of entity types to be loaded.
 
     Returns:
-        entities: A dictionary where key is an entity type and value is a
-            set of entities of that type.
+        type_entities_dict: A dictionary where key is an entity type and 
+            value is a set of entities of that type.
     """
-    entities = collections.defaultdict(set)
+    type_entities_dict = collections.defaultdict(set)
     with open(file_name) as f:
         for line in f:
             json_obj = json.loads(line)
             for entity in json_obj['entity_list']:
                 if entity['type'].lower() in types:
                     for entity_i in entity['name'].lower().split('|'):
-                        entities[entity['type'].lower()].add(entity_i.strip())
-    return entities
+                        type_entities_dict[entity['type'].lower()].add(
+                            entity_i.strip())
+    return type_entities_dict
 
 
 def load_entities(folder: str, types: List[str]) -> List[Set[str]]:
@@ -76,12 +77,10 @@ def load_entities(folder: str, types: List[str]) -> List[Set[str]]:
         if file_name.endswith('.json')
     ]
 
-    pool = multiprocessing.Pool()
-    load_entities_fn_partial = partial(load_entities_fn, types=types)
+    with multiprocessing.Pool() as pool:
+        load_entities_fn_partial = partial(load_entities_fn, types=types)
 
-    results = pool.map(load_entities_fn_partial, file_names)
-    pool.close()
-    pool.join()
+        results = pool.map(load_entities_fn_partial, file_names)
 
     # Merge sets.
     entities = {type_: set() for type_ in types}
@@ -127,6 +126,9 @@ def main(model_path: str, ref_pairs_path: str, bioconcepts_path: str,
             unique_entities1.add(entities1)
             unique_entities2.add(entities2)
 
+            # Finds the first entity that has an entry in the word2vec vocab.
+            # TODO: This should be changed to handle all entity matches.
+            # For that we maybe use the average vector of these entities.
             canonical_entity1 = find_entity(entities1, w2v_model.wv.vocab)
             canonical_entity2 = find_entity(entities2, w2v_model.wv.vocab)
 

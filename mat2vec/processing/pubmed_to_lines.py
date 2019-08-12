@@ -36,24 +36,22 @@ def abstracts_to_lines_fn(
     input_file, output_file = args
     fout = open(output_file, 'w')
     doc_count = 0
-    with gzip.open(input_file, 'rt') as f:
-        text = f.read()
-        tree = ET.ElementTree(ET.fromstring(text))
-        root = tree.getroot()
+    with open(output_file, 'w') as fout:
+        with gzip.open(input_file, 'rt') as f:
+            text = f.read()
+            tree = ET.ElementTree(ET.fromstring(text))
+            root = tree.getroot()
 
-        for abstract_text in root.iterfind('.//AbstractText'):
-            doc_text = abstract_text.text
-            if doc_text is None:
-                continue
-            doc_tokens, _ = text_processor.process(doc_text)
-            doc_text = ' '.join(doc_tokens)
+            for abstract_text in root.iterfind('.//AbstractText'):
+                doc_text = abstract_text.text
+                if doc_text is None:
+                    continue
+                doc_tokens, _ = text_processor.process(doc_text)
+                doc_text = ' '.join(doc_tokens)
 
-            fout.write('{}\n'.format(doc_text))
-            doc_count += 1
-            # if doc_count >= 1000:
-            #    break
+                fout.write('{}\n'.format(doc_text))
+                doc_count += 1
 
-    fout.close()
     return doc_count
 
 
@@ -86,18 +84,16 @@ def abstracts_to_lines(input_folder: str, output_folder: str,
     # Warning: more than 8 processes causes OOM on a 64GB machine.
     pool = multiprocessing.Pool(n_processes)
     doc_count = 0
-    for partial_doc_count in pool.imap_unordered(
-            abstracts_to_lines_fn_partial, zip(input_files, output_files)):
-        doc_count += partial_doc_count
-        time_passed = time.time() - start_time
-        time_remaining = TOTAL_DOCS * time_passed / doc_count - time_passed
-        logging.info('Processed {}/{} docs in {} (Remaining: {})'.format(
-            doc_count, TOTAL_DOCS,
-            datetime.timedelta(seconds=time_passed),
-            datetime.timedelta(seconds=time_remaining)))
-
-    pool.close()
-    pool.join()
+    with multiprocessing.Pool(n_processes) as pool:
+        for partial_doc_count in pool.imap_unordered(
+                abstracts_to_lines_fn_partial, zip(input_files, output_files)):
+            doc_count += partial_doc_count
+            time_passed = time.time() - start_time
+            time_remaining = TOTAL_DOCS * time_passed / doc_count - time_passed
+            logging.info('Processed {}/{} docs in {} (Remaining: {})'.format(
+                doc_count, TOTAL_DOCS,
+                datetime.timedelta(seconds=time_passed),
+                datetime.timedelta(seconds=time_remaining)))
 
     logging.info('Done. Time: {}'.format(
         datetime.timedelta(seconds=time.time() - start_time)))
